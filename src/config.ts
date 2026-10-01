@@ -53,6 +53,7 @@ function readInlineConfig(): ConfigurationOptionsPartial {
     'warn-on-openssf-scorecard-level'
   )
   const show_patched_versions = getOptionalBoolean('show-patched-versions')
+  const fail_on_unknown_license = getOptionalBoolean('fail-on-unknown-license')
 
   validateLicenses('allow-licenses', allow_licenses)
   validateLicenses('deny-licenses', deny_licenses)
@@ -76,7 +77,8 @@ function readInlineConfig(): ConfigurationOptionsPartial {
     warn_only,
     show_openssf_scorecard,
     warn_on_openssf_scorecard_level,
-    show_patched_versions
+    show_patched_versions,
+    fail_on_unknown_license
   }
 
   return Object.fromEntries(
@@ -216,9 +218,10 @@ async function getRemoteConfig(configOpts: {
       ref: configOpts.ref
     })
 
-    // When using mediaType.format = 'raw', the response data is a string,
-    // but getContent's return type does not reflect that, so validate it here.
-    return z.string().parse(data)
+    // When using mediaType.format = 'raw', the response.data is a string
+    // but this is not reflected in the return type of getContent, so we're
+    // casting the return value to a string.
+    return z.string().parse(data as unknown)
   } catch (error) {
     core.debug(error as string)
     throw new Error('Error fetching remote config file')
