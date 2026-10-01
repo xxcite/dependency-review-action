@@ -340,7 +340,7 @@ function printChangeVulnerabilities(change: Change): boolean {
   return change.vulnerabilities.length > 0
 }
 
-async function printLicensesBlock(
+export async function printLicensesBlock(
   invalidLicenseChanges: Record<string, Changes>,
   warnOnly: boolean,
   failOnUnknownLicense = false

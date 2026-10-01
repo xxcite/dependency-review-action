@@ -10,7 +10,8 @@ import * as fs from 'fs'
 import * as core from '@actions/core'
 import {DefaultArtifactClient} from '@actions/artifact'
 import type {SpyInstance} from 'jest-mock'
-import {handleLargeSummary} from '../src/main'
+import {handleLargeSummary, printLicensesBlock} from '../src/main'
+import type {Change, Changes} from '../src/schemas'
 
 jest.mock('ansi-styles', () => ({
   __esModule: true,
@@ -74,6 +75,68 @@ const DefaultArtifactClientMock = DefaultArtifactClient as unknown as jest.Mock
 
 const createArtifactClient = (): ArtifactClientInstance => ({
   uploadArtifact: jest.fn(async () => undefined)
+})
+
+describe('printLicensesBlock', () => {
+  beforeEach(() => {
+    jest.clearAllMocks()
+  })
+
+  test('fails for unknown licenses when fail-on-unknown-license is enabled', async () => {
+    const setFailedMock = core.setFailed as jest.Mock
+    const unlicensedChange: Change = {
+      change_type: 'added',
+      manifest: 'package.json',
+      ecosystem: 'npm',
+      name: 'example',
+      version: '1.0.0',
+      package_url: 'pkg:npm/example@1.0.0',
+      license: null,
+      source_repository_url: null,
+      scope: 'runtime',
+      vulnerabilities: []
+    }
+
+    const invalidLicenseChanges: Record<string, Changes> = {
+      forbidden: [],
+      unresolved: [],
+      unlicensed: [unlicensedChange]
+    }
+
+    await printLicensesBlock(invalidLicenseChanges, false, true)
+
+    expect(setFailedMock).toHaveBeenCalledWith(
+      'Dependency review detected packages with unknown licenses.'
+    )
+  })
+
+  test('keeps unresolved SPDX license issues as hard failures', async () => {
+    const setFailedMock = core.setFailed as jest.Mock
+    const unresolvedChange: Change = {
+      change_type: 'added',
+      manifest: 'package.json',
+      ecosystem: 'npm',
+      name: 'example',
+      version: '1.0.0',
+      package_url: 'pkg:npm/example@1.0.0',
+      license: 'NotASPDX',
+      source_repository_url: null,
+      scope: 'runtime',
+      vulnerabilities: []
+    }
+
+    const invalidLicenseChanges: Record<string, Changes> = {
+      forbidden: [],
+      unresolved: [unresolvedChange],
+      unlicensed: []
+    }
+
+    await printLicensesBlock(invalidLicenseChanges, true, true)
+
+    expect(setFailedMock).toHaveBeenCalledWith(
+      'Dependency review could not detect the validity of all licenses.'
+    )
+  })
 })
 
 describe('handleLargeSummary', () => {
