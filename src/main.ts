@@ -225,7 +225,11 @@ async function run(): Promise<void> {
         JSON.stringify(invalidLicenseChanges)
       )
       summary.addLicensesToSummary(invalidLicenseChanges, config)
-      issueFound ||= await printLicensesBlock(invalidLicenseChanges, warnOnly, config.fail_on_unknown_license)
+      issueFound ||= await printLicensesBlock(
+        invalidLicenseChanges,
+        warnOnly,
+        config.fail_on_unknown_license
+      )
     }
     if (config.deny_packages || config.deny_groups) {
       core.setOutput('denied-changes', JSON.stringify(deniedChanges))
@@ -340,7 +344,7 @@ function printChangeVulnerabilities(change: Change): boolean {
   return change.vulnerabilities.length > 0
 }
 
-async function printLicensesBlock(
+export async function printLicensesBlock(
   invalidLicenseChanges: Record<string, Changes>,
   warnOnly: boolean,
   failOnUnknownLicense = false
@@ -365,21 +369,29 @@ async function printLicensesBlock(
         '\nThe validity of the licenses of the dependencies below could not be determined. Ensure that they are valid SPDX licenses:'
       )
       printLicensesError(invalidLicenseChanges.unresolved)
-      core.setFailed(
+      const msg =
         'Dependency review could not detect the validity of all licenses.'
-      )
+      if (warnOnly) {
+        core.warning(msg)
+      } else {
+        core.setFailed(msg)
+      }
     }
     if (invalidLicenseChanges.unlicensed.length > 0) {
       printNullLicenses(invalidLicenseChanges.unlicensed)
-      if (failOnUnknownLicense) {
-        issueFound = true
-        const msg =
-          'Dependency review detected packages with unknown licenses.'
-        if (warnOnly) {
-          core.warning(msg)
-        } else {
-          core.setFailed(msg)
-        }
+    }
+    if (
+      failOnUnknownLicense &&
+      (invalidLicenseChanges.unlicensed.length > 0 ||
+        invalidLicenseChanges.unresolved.length > 0)
+    ) {
+      issueFound = true
+      const msg =
+        'Dependency review detected packages with unknown or invalid licenses.'
+      if (warnOnly) {
+        core.warning(msg)
+      } else {
+        core.setFailed(msg)
       }
     }
 

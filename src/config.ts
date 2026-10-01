@@ -221,7 +221,7 @@ async function getRemoteConfig(configOpts: {
     // When using mediaType.format = 'raw', the response.data is a string
     // but this is not reflected in the return type of getContent, so we're
     // casting the return value to a string.
-    return z.string().parse(data as unknown)
+    return z.string().parse(data)
   } catch (error) {
     core.debug(error as string)
     throw new Error('Error fetching remote config file')
