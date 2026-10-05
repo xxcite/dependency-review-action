@@ -225,7 +225,11 @@ async function run(): Promise<void> {
         JSON.stringify(invalidLicenseChanges)
       )
       summary.addLicensesToSummary(invalidLicenseChanges, config)
-      issueFound ||= await printLicensesBlock(invalidLicenseChanges, warnOnly, config.fail_on_unknown_license)
+      issueFound ||= await printLicensesBlock(
+        invalidLicenseChanges,
+        warnOnly,
+        config.fail_on_unknown_license
+      )
     }
     if (config.deny_packages || config.deny_groups) {
       core.setOutput('denied-changes', JSON.stringify(deniedChanges))
@@ -340,7 +344,7 @@ function printChangeVulnerabilities(change: Change): boolean {
   return change.vulnerabilities.length > 0
 }
 
-async function printLicensesBlock(
+export async function printLicensesBlock(
   invalidLicenseChanges: Record<string, Changes>,
   warnOnly: boolean,
   failOnUnknownLicense = false
@@ -373,8 +377,7 @@ async function printLicensesBlock(
       printNullLicenses(invalidLicenseChanges.unlicensed)
       if (failOnUnknownLicense) {
         issueFound = true
-        const msg =
-          'Dependency review detected packages with unknown licenses.'
+        const msg = 'Dependency review detected packages with unknown licenses.'
         if (warnOnly) {
           core.warning(msg)
         } else {
